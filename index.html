@@ -43,7 +43,18 @@
             score = 0;
         }, null, this);
     }
-
+// HIT DETECTION: Now with Screen Shake!
+this.physics.add.overlap(player, obstacles, () => {
+    // This makes the camera shake for 100ms
+    this.cameras.main.shake(100, 0.01);
+    
+    // Slight delay before restart so player feels the "oomph" of the crash
+    this.time.delayedCall(150, () => {
+        this.scene.restart();
+        score = 0;
+    });
+}, null, this);
+        
     function addPipe() {
         let pipe = obstacles.create(400, Math.random() * 600, 'pipe');
         pipe.body.allowGravity = false; // Pipes don't fall!
