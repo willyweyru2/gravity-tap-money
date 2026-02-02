@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+    <style> body { margin: 0; background: #000; } </style>
+</head>
+<body>
+    <script>
+    const config = {
+        type: Phaser.AUTO,
+        width: 400, height: 600,
+        physics: { default: 'arcade', arcade: { gravity: { y: 900 } } },
+        scene: { preload: preload, create: create, update: update }
+    };
+
+    let player, obstacles, score = 0, scoreText;
+
+    new Phaser.Game(config);
+
+    function preload() {
+        this.load.image('ball', 'https://labs.phaser.io/assets/sprites/shinyball.png');
+        this.load.image('pipe', 'https://labs.phaser.io/assets/sprites/columns.png'); // Placeholder art
+    }
+
+    function create() {
+        player = this.physics.add.sprite(100, 300, 'ball');
+        player.setCollideWorldBounds(true);
+        
+        obstacles = this.physics.add.group();
+        
+        // Spawn a pipe every 1500ms
+        this.time.addEvent({ delay: 1500, callback: addPipe, callbackScope: this, loop: true });
+
+        scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#fff' });
+
+        this.input.on('pointerdown', () => {
+            player.setVelocityY(-350);
+        });
+
+        // HIT DETECTION: If player hits pipe, restart game
+        this.physics.add.overlap(player, obstacles, () => {
+            this.scene.restart();
+            score = 0;
+        }, null, this);
+    }
+
+    function addPipe() {
+        let pipe = obstacles.create(400, Math.random() * 600, 'pipe');
+        pipe.body.allowGravity = false; // Pipes don't fall!
+        pipe.setVelocityX(-200); // Move toward the player
+        score += 1;
+        scoreText.setText('Score: ' + score);
+    }
+
+    function update() {
+        // Remove pipes that go off screen to keep game fast
+        obstacles.children.iterate(child => {
+            if (child && child.x < -50) child.destroy();
+        });
+    }
+    </script>
+</body>
+</html>
