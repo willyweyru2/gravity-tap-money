@@ -1,0 +1,6 @@
+{
+  "appId": "com.yourname.gravitytap",
+  "appName": "Gravity Tap Money",
+  "webDir": ".",
+  "bundledWebRuntime": false
+}
