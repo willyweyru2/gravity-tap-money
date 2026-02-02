@@ -1,74 +1,47 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
-    <style> body { margin: 0; background: #000; } </style>
-</head>
-<body>
-    <script>
-    const config = {
-        type: Phaser.AUTO,
-        width: 400, height: 600,
-        physics: { default: 'arcade', arcade: { gravity: { y: 900 } } },
-        scene: { preload: preload, create: create, update: update }
-    };
+// Add these variables at the top
+let highscore = localStorage.getItem('gravityHighscore') || 0;
+let gameSpeed = -200;
 
-    let player, obstacles, score = 0, scoreText;
+function create() {
+    // ... (Keep your previous player and obstacle creation)
 
-    new Phaser.Game(config);
+    // DISPLAY HIGH SCORE
+    this.add.text(16, 50, 'Best: ' + highscore, { fontSize: '20px', fill: '#ff0' });
 
-    function preload() {
-        this.load.image('ball', 'https://labs.phaser.io/assets/sprites/shinyball.png');
-        this.load.image('pipe', 'https://labs.phaser.io/assets/sprites/columns.png'); // Placeholder art
-    }
-
-    function create() {
-        player = this.physics.add.sprite(100, 300, 'ball');
-        player.setCollideWorldBounds(true);
-        
-        obstacles = this.physics.add.group();
-        
-        // Spawn a pipe every 1500ms
-        this.time.addEvent({ delay: 1500, callback: addPipe, callbackScope: this, loop: true });
-
-        scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#fff' });
-
-        this.input.on('pointerdown', () => {
-            player.setVelocityY(-350);
-        });
-
-        // HIT DETECTION: If player hits pipe, restart game
-        this.physics.add.overlap(player, obstacles, () => {
-            this.scene.restart();
-            score = 0;
-        }, null, this);
-    }
-// HIT DETECTION: Now with Screen Shake!
-this.physics.add.overlap(player, obstacles, () => {
-    // This makes the camera shake for 100ms
-    this.cameras.main.shake(100, 0.01);
-    
-    // Slight delay before restart so player feels the "oomph" of the crash
-    this.time.delayedCall(150, () => {
-        this.scene.restart();
-        score = 0;
+    // CREATE PARTICLES (The "Juice")
+    const particles = this.add.particles(0, 0, 'ball', {
+        speed: { min: -200, max: 200 },
+        angle: { min: 0, max: 360 },
+        scale: { start: 0.2, end: 0 },
+        blendMode: 'ADD',
+        lifespan: 600,
+        emitting: false // Only fire on death
     });
-}, null, this);
-        
-    function addPipe() {
-        let pipe = obstacles.create(400, Math.random() * 600, 'pipe');
-        pipe.body.allowGravity = false; // Pipes don't fall!
-        pipe.setVelocityX(-200); // Move toward the player
-        score += 1;
-        scoreText.setText('Score: ' + score);
-    }
 
-    function update() {
-        // Remove pipes that go off screen to keep game fast
-        obstacles.children.iterate(child => {
-            if (child && child.x < -50) child.destroy();
-        });
-    }
-    </script>
-</body>
-</html>
+    this.physics.add.overlap(player, obstacles, () => {
+        // Save High Score
+        if (score > highscore) {
+            highscore = score;
+            localStorage.setItem('gravityHighscore', highscore);
+        }
+
+        // Explode!
+        particles.emitParticleAt(player.x, player.y, 20);
+        player.setVisible(false); // Hide player
+        this.cameras.main.shake(100, 0.02);
+
+        this.time.delayedCall(500, () => this.scene.restart());
+    }, null, this);
+}
+
+function addPipe() {
+    let pipe = obstacles.create(400, Math.random() * 600, 'pipe');
+    pipe.body.allowGravity = false;
+    
+    // Increase speed as score goes up
+    let speedBoost = Math.floor(score / 5) * 10;
+    pipe.setVelocityX(gameSpeed - speedBoost); 
+    
+    score += 1;
+    scoreText.setText('Score: ' + score);
+}
